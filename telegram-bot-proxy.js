@@ -1,7 +1,8 @@
-// Telegram Bot API base URL
+// CONFIG: Your bot server URL to receive webhook updates
+const BOT_UPDATE_FORWARD_URL = 'https://yourdomain.com/my-bot-handler'; // change this
+
 const TELEGRAM_API_BASE = 'https://api.telegram.org';
 
-// HTML template for documentation
 const DOC_HTML = `<!DOCTYPE html>
 <html>
 <head>
@@ -42,10 +43,8 @@ const DOC_HTML = `<!DOCTYPE html>
 <body>
     <h1>Telegram Bot API Proxy</h1>
     <p>This service acts as a transparent proxy for the Telegram Bot API. It allows you to bypass network restrictions and create middleware for your Telegram bot applications.</p>
-    
     <h2>How to Use</h2>
     <p>Replace <code>api.telegram.org</code> with this worker's URL in your API calls.</p>
-    
     <div class="example">
         <h3>Example Usage:</h3>
         <p>Original Telegram API URL:</p>
@@ -53,7 +52,6 @@ const DOC_HTML = `<!DOCTYPE html>
         <p>Using this proxy:</p>
         <div class="code">https://{YOUR_WORKER_URL}/bot{YOUR_BOT_TOKEN}/sendMessage</div>
     </div>
-
     <h2>Features</h2>
     <ul>
         <li>Supports all Telegram Bot API methods</li>
@@ -62,11 +60,9 @@ const DOC_HTML = `<!DOCTYPE html>
         <li>Transparent proxying of responses</li>
         <li>Maintains original status codes and headers</li>
     </ul>
-
     <div class="note">
         <strong>Note:</strong> This proxy does not store or modify your bot tokens. All requests are forwarded directly to Telegram's API servers.
     </div>
-
     <h2>Example Code</h2>
     <div class="code">
 // JavaScript Example
@@ -88,8 +84,10 @@ fetch('https://{YOUR_WORKER_URL}/bot{YOUR_BOT_TOKEN}/sendMessage', {
 
 async function handleRequest(request) {
   const url = new URL(request.url);
+  const pathParts = url.pathname.split('/').filter(Boolean);
 
-  if (url.pathname === '/' || url.pathname === '') {
+  // Serve docs
+  if (url.pathname === '/' || pathParts.length === 0) {
     return new Response(DOC_HTML, {
       headers: {
         'Content-Type': 'text/html;charset=UTF-8',
@@ -98,28 +96,30 @@ async function handleRequest(request) {
     });
   }
 
-  // Extract path segments to validate the request format.
-  // Accept either /bot{token}/{method} or /file/bot{token}/{file_path}
-  const pathParts = url.pathname.split('/').filter(Boolean);
-  if (pathParts.length < 2) {
+  // Webhook redirection: POST to /bot<TOKEN>
+  if (pathParts.length === 1 && pathParts[0].startsWith('bot') && request.method === 'POST') {
+    try {
+      const forwardReq = new Request(BOT_UPDATE_FORWARD_URL, {
+        method: 'POST',
+        headers: request.headers,
+        body: request.body,
+      });
+      const response = await fetch(forwardReq);
+      return new Response(response.body, response);
+    } catch (err) {
+      return new Response(`Failed to forward webhook: ${err.message}`, { status: 500 });
+    }
+  }
+
+  // Proxy to Telegram API
+  const isFileReq = pathParts[0] === 'file';
+  const isBotReq = pathParts[0].startsWith('bot');
+  if ((!isFileReq && !isBotReq) || (isFileReq && (!pathParts[1] || !pathParts[1].startsWith('bot')))) {
     return new Response('Invalid request format', { status: 400 });
   }
-  if (pathParts[0] === 'file') {
-    if (pathParts.length < 3 || !pathParts[1].startsWith('bot')) {
-      return new Response('Invalid file request format', { status: 400 });
-    }
-  } else if (!pathParts[0].startsWith('bot')) {
-    return new Response('Invalid bot request format', { status: 400 });
-  }
 
-  // Reconstruct the Telegram API URL
   const telegramUrl = `${TELEGRAM_API_BASE}${url.pathname}${url.search}`;
-
-  // Clone request headers so we can safely modify them
   const headers = new Headers(request.headers);
-
-  // Ensure JSON requests explicitly use UTF-8 to avoid issues with emoji or
-  // other special characters
   const contentType = headers.get('Content-Type');
   if (contentType && contentType.startsWith('application/json') && !contentType.includes('charset')) {
     headers.set('Content-Type', 'application/json; charset=UTF-8');
@@ -129,34 +129,26 @@ async function handleRequest(request) {
     method: request.method,
     headers,
     redirect: 'follow',
+    body: request.method !== 'GET' && request.method !== 'HEAD' ? request.body : undefined,
   };
-  if (request.method !== 'GET' && request.method !== 'HEAD') {
-    init.body = request.body;
-  }
-
-  // Forward the request to Telegram API, streaming the body when present.
-  const proxyReq = new Request(telegramUrl, init);
 
   try {
-    const tgRes = await fetch(proxyReq);
-    const res = new Response(tgRes.body, tgRes); // Copy response as-is
+    const tgRes = await fetch(telegramUrl, init);
+    const res = new Response(tgRes.body, tgRes);
     const reqAllowHeaders = request.headers.get('Access-Control-Request-Headers');
-    const allowHeaders = reqAllowHeaders ? reqAllowHeaders : 'Content-Type';
+    const allowHeaders = reqAllowHeaders || 'Content-Type';
     res.headers.set('Access-Control-Allow-Origin', '*');
-    res.headers.set(
-      'Access-Control-Allow-Methods',
-      'GET, POST, PUT, DELETE, OPTIONS, HEAD'
-    );
+    res.headers.set('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS, HEAD');
     res.headers.set('Access-Control-Allow-Headers', allowHeaders);
     return res;
   } catch (err) {
     return new Response(`Error proxying request: ${err.message}`, { status: 500 });
   }
 }
-// Handle OPTIONS requests for CORS
+
 function handleOptions(request) {
   const reqAllowHeaders = request.headers.get('Access-Control-Request-Headers');
-  const allowHeaders = reqAllowHeaders ? reqAllowHeaders : 'Content-Type';
+  const allowHeaders = reqAllowHeaders || 'Content-Type';
 
   const corsHeaders = {
     'Access-Control-Allow-Origin': '*',
@@ -171,14 +163,11 @@ function handleOptions(request) {
   });
 }
 
-// Main event listener for the worker
 addEventListener('fetch', event => {
   const request = event.request;
-  
-  // Handle CORS preflight requests
   if (request.method === 'OPTIONS') {
     event.respondWith(handleOptions(request));
   } else {
     event.respondWith(handleRequest(request));
   }
-}); 
+});
