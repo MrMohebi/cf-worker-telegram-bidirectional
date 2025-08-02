@@ -96,8 +96,8 @@ async function handleRequest(request) {
     });
   }
 
-  // Webhook redirection: POST to /bot<TOKEN>
-  if (pathParts.length === 1 && pathParts[0].startsWith('bot') && request.method === 'POST') {
+  // Webhook redirection: POST to /botRedirect<TOKEN>
+  if (pathParts.length === 1 && pathParts[0].startsWith('botRedirect') && request.method === 'POST') {
     try {
       const forwardReq = new Request(BOT_UPDATE_FORWARD_URL, {
         method: 'POST',

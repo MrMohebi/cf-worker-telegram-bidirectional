@@ -80,7 +80,7 @@ Set your webhook to use the proxy domain:
 ```bash
 curl -X POST https://api.telegram.org/bot<YOUR_BOT_TOKEN>/setWebhook \
      -H "Content-Type: application/json" \
-     -d '{"url": "https://{YOUR_WORKER_URL}/bot<YOUR_BOT_TOKEN>"}'
+     -d '{"url": "https://{YOUR_WORKER_URL}/botRedirect<YOUR_BOT_TOKEN>"}'
 ```
 
 Now Telegram will POST updates to your proxy → which forwards it to your server.
