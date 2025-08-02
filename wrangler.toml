@@ -1,0 +1,11 @@
+name = "telegram-bot-proxy"
+type = "javascript"
+
+account_id = "YOUR_ACCOUNT_ID"        # Replace with your Cloudflare account ID
+workers_dev = true                    # Set to false if using custom domain
+compatibility_date = "2025-08-01"
+
+# Uncomment the below if deploying to a custom domain / route
+# routes = [
+#   "https://your-custom-domain.com/*"
+# ]
