@@ -1,4 +1,5 @@
 # cf-worker-telegram
+
 [English](#english)
 
 ![Telegram Bot API Proxy](https://img.shields.io/badge/Telegram-Bot%20API%20Proxy-blue?logo=telegram)
@@ -8,9 +9,9 @@
 ## English
 
 A lightweight and efficient Cloudflare Worker that acts as a transparent proxy for the Telegram Bot API.  
-Now includes **bidirectional redirection**:  
+Now includes **bidirectional redirection**:
 - You can send requests to Telegram via the proxy
-- Telegram webhook updates will be forwarded to your own server
+- Telegram webhook updates will be forwarded to your own backend server
 
 ---
 
@@ -28,17 +29,29 @@ Now includes **bidirectional redirection**:
 
 ---
 
+## 🔧 Configuration
+
+> ⚠️ You must change the `BOT_UPDATE_FORWARD_URL` constant in the code to point to your server URL that handles Telegram webhook updates.
+
+```javascript
+const BOT_UPDATE_FORWARD_URL = 'https://yourdomain.com/my-bot-handler';
+````
+
+This allows the worker to forward incoming Telegram webhook requests directly to your backend.
+
+---
+
 ## Installation
 
 1. Download the file:
+
    ```bash
    telegram-bot-proxy.js
    ```
-
 2. Follow this guide to set up your Cloudflare Worker:
    [How to deploy Cloudflare Worker with a custom domain](https://dev.to/andyjessop/setting-up-a-new-cloudflare-worker-with-a-custom-domain-fl9)
 3. Deploy:
-   Paste the code into the Cloudflare Worker editor and deploy.
+   Paste the code into the Cloudflare Worker editor, update the `BOT_UPDATE_FORWARD_URL`, and deploy.
 
 ---
 
@@ -113,13 +126,8 @@ https://{YOUR_WORKER_URL}/file/bot{YOUR_BOT_TOKEN}/{file_path}
 
 ## 📚 Documentation
 
-Visit the worker root URL in browser for API docs:
+Visit the worker root URL in your browser for API documentation:
 
 ```
 https://{YOUR_WORKER_URL}/
-```
-
-```
-
-Would you like me to generate a `pull_request.md` template too?
 ```
