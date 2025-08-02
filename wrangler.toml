@@ -1,8 +1,5 @@
 name = "telegram-bot-proxy"
-type = "javascript"
-
-account_id = "YOUR_ACCOUNT_ID"        # Replace with your Cloudflare account ID
-workers_dev = true                    # Set to false if using custom domain
+main = "telegram-bot-proxy.js"
 compatibility_date = "2025-08-01"
 
 # Uncomment the below if deploying to a custom domain / route
