@@ -1,90 +1,125 @@
 # cf-worker-telegram
-[English](#english) | [Tiếng Việt](#tiếng-việt)
+[English](#english)
 
 ![Telegram Bot API Proxy](https://img.shields.io/badge/Telegram-Bot%20API%20Proxy-blue?logo=telegram)
 ![Cloudflare Workers](https://img.shields.io/badge/Cloudflare-Workers-orange?logo=cloudflare)
 ![License](https://img.shields.io/badge/license-MIT-green)
 
-# English
+## English
 
-A lightweight and efficient Cloudflare Worker that acts as a transparent proxy for the Telegram Bot API. This proxy allows you to bypass network restrictions and create middleware for Telegram bot applications.
+A lightweight and efficient Cloudflare Worker that acts as a transparent proxy for the Telegram Bot API.  
+Now includes **bidirectional redirection**:  
+- You can send requests to Telegram via the proxy
+- Telegram webhook updates will be forwarded to your own server
 
-# Tiếng Việt
+---
 
-Chạy trên Cloudflare Worker, đơn giản hoạt động như một proxy cho Telegram Bot API. Proxy này cho phép bạn vượt qua các hạn chế mạng và tạo middleware cho các ứng dụng bot Telegram.
+## Features
 
-## Tính năng
+- Supports all Telegram Bot API methods
+- Full CORS support for web applications
+- High performance with Cloudflare's global edge network
+- Embedded API documentation page
+- Handles all HTTP methods: GET, POST, PUT, DELETE
+- Supports `multipart/form-data` for file uploads (`sendPhoto`, `sendDocument`, etc.)
+- Stable handling of emojis and special characters
+- Access Telegram file paths via `/file/bot{TOKEN}/{file_path}`
+- Automatically forwards webhook updates to your own bot server
 
-- Chạy tất cả các phương thức của Telegram Bot API
-- Hỗ trợ CORS đầy đủ cho các ứng dụng web
-- Hiệu suất cao với mạng lưới toàn cầu của Cloudflare
-- Trang tài liệu tích hợp sẵn
-- Hỗ trợ tất cả các phương thức HTTP (GET, POST, PUT, DELETE)
-- Gửi tệp tin bằng `multipart/form-data` (ví dụ: `sendPhoto`, `sendDocument`)
-- Xử lý biểu tượng cảm xúc và ký tự đặc biệt ổn định hơn
-- Tải tệp tin từ đường dẫn `/file/bot{TOKEN}/<file_path>`
+---
 
-## Cài đặt
+## Installation
 
-1. Tải file này:
+1. Download the file:
    ```bash
-      telegram-bot-proxy.js
+   telegram-bot-proxy.js
    ```
-2. Hướng dẫn tạo Cloudflare Worker
-```https://dev.to/andyjessop/setting-up-a-new-cloudflare-worker-with-a-custom-domain-fl9```
-3. Deploy
-   Coppy nội dung telegram-bot-proxy.js dán vào phần edit code và deploy
 
-## Cách sử dụng
+2. Follow this guide to set up your Cloudflare Worker:
+   [How to deploy Cloudflare Worker with a custom domain](https://dev.to/andyjessop/setting-up-a-new-cloudflare-worker-with-a-custom-domain-fl9)
+3. Deploy:
+   Paste the code into the Cloudflare Worker editor and deploy.
 
-Thay thế `api.telegram.org` bằng URL của worker trong các API calls của bạn:
+---
 
-URL Telegram API gốc:
+## Usage
+
+Replace `api.telegram.org` with your Cloudflare Worker domain:
+
+Original Telegram API:
+
 ```
-https://api.telegram.org/bot{TOKEN_BOT_CỦA_BẠN}/sendMessage
+https://api.telegram.org/bot{YOUR_BOT_TOKEN}/sendMessage
 ```
 
-Sử dụng proxy này:
+Using the proxy:
+
 ```
-https://{URL_WORKER_CỦA_BẠN}/bot{TOKEN_BOT_CỦA_BẠN}/sendMessage
+https://{YOUR_WORKER_URL}/bot{YOUR_BOT_TOKEN}/sendMessage
 ```
 
-### Ví dụ Code
+---
+
+### Webhook Setup
+
+Set your webhook to use the proxy domain:
+
+```bash
+curl -X POST https://api.telegram.org/bot<YOUR_BOT_TOKEN>/setWebhook \
+     -H "Content-Type: application/json" \
+     -d '{"url": "https://{YOUR_WORKER_URL}/bot<YOUR_BOT_TOKEN>"}'
+```
+
+Now Telegram will POST updates to your proxy → which forwards it to your server.
+
+---
+
+### Example Code
 
 ```javascript
-// Ví dụ JavaScript
-fetch('https://{URL_WORKER_CỦA_BẠN}/bot{TOKEN_BOT_CỦA_BẠN}/sendMessage', {
+fetch('https://{YOUR_WORKER_URL}/bot{YOUR_BOT_TOKEN}/sendMessage', {
     method: 'POST',
     headers: {
         'Content-Type': 'application/json',
     },
     body: JSON.stringify({
         chat_id: "123456789",
-        text: "Xin chào từ Telegram Bot API Proxy!"
+        text: "Hello from Telegram Bot API Proxy!"
     })
 })
 .then(response => response.json())
 .then(data => console.log(data));
 ```
 
-### Lấy file từ Telegram
+---
+
+### Downloading Files from Telegram
 
 ```
-https://{URL_WORKER_CỦA_BẠN}/file/bot{TOKEN_BOT_CỦA_BẠN}/<file_path>
+https://{YOUR_WORKER_URL}/file/bot{YOUR_BOT_TOKEN}/{file_path}
 ```
 
-## 🔒 Bảo mật
+---
 
-- Proxy này không lưu trữ hoặc sửa đổi token bot của bạn
-- Tất cả các yêu cầu được chuyển tiếp trực tiếp đến máy chủ API của Telegram
-- HTTPS được bắt buộc theo mặc định (yêu cầu của Cloudflare Workers)
-- Không lưu trữ logs
-- Tận dụng mạng lưới CDN toàn cầu của Cloudflare
-- Hoàn hảo cho các ứng dụng web
+## 🔒 Security
 
-## 📚 Tài liệu
+* This proxy does not store or modify your bot token
+* All requests are forwarded directly to Telegram’s official servers
+* HTTPS enforced by default (Cloudflare Workers)
+* No logging or data storage
+* Powered by Cloudflare’s global CDN — perfect for web apps
 
-Truy cập tài liệu tích hợp bằng cách truy cập URL gốc của worker:
+---
+
+## 📚 Documentation
+
+Visit the worker root URL in browser for API docs:
+
 ```
-https://{URL_WORKER}/
+https://{YOUR_WORKER_URL}/
+```
+
+```
+
+Would you like me to generate a `pull_request.md` template too?
 ```
